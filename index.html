@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>IV Fluid Calculator</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 font-sans text-gray-800">
+
+  <div class="min-h-screen py-4 px-2 sm:px-4">
+    <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+      <div class="bg-blue-600 p-4 text-white text-center">
+        <h1 class="text-2xl font-bold">Pediatric IV Fluid Calculator</h1>
+        <p class="text-sm opacity-80 mt-1">คลินิกหมอนุ่น ภูเขียว</p>
+      </div>
+
+      <div class="p-4 sm:p-6 space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">ช่วงอายุ (Age Group)</label>
+            <select id="ageGroup" class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" onchange="toggleNewbornFields(); updateDehydrationPercent();">
+              <option value="newborn">Newborn (0-28 วัน)</option>
+              <option value="infant">Infant (< 1 ปี)</option>
+              <option value="child" selected>Child (≥ 1 ปี)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">น้ำหนักจริง (Actual Wt.) kg</label>
+            <input type="number" id="weight" value="15" step="0.1" min="0.1" class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" oninput="calculateFluid()">
+          </div>
+
+          <div class="col-span-1 md:col-span-2 bg-green-50 p-4 rounded-md border border-green-200 mt-1">
+            <label class="flex items-center space-x-2 text-sm font-medium text-gray-800 cursor-pointer">
+              <input type="checkbox" id="isObese" class="rounded text-green-600 focus:ring-green-500 w-4 h-4" onchange="toggleObeseFields(); calculateFluid();">
+              <span class="font-bold text-green-800">ผู้ป่วยมีภาวะอ้วน (Obese) - คำนวณด้วย Adjusted Wt.</span>
+            </label>
+            
+            <div id="obeseFields" class="mt-4 hidden grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="col-span-1 md:col-span-2 bg-white p-3 rounded border border-green-200 shadow-sm">
+                <label class="block text-sm font-medium text-green-700 mb-2">💡 ตัวช่วยประมาณการ IBW อัตโนมัติ</label>
+                <div class="flex space-x-2">
+                  <div class="w-1/2">
+                    <input type="number" id="ageYears" placeholder="อายุ (ปี)" min="0" class="w-full border-gray-300 rounded-md p-2 border focus:ring-green-500 focus:border-green-500" oninput="autoCalculateIBW()">
+                  </div>
+                  <div class="w-1/2">
+                    <input type="number" id="ageMonths" placeholder="อายุ (เดือน)" min="0" max="11" class="w-full border-gray-300 rounded-md p-2 border focus:ring-green-500 focus:border-green-500" oninput="autoCalculateIBW()">
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Ideal Body Weight (IBW) kg</label>
+                <input type="number" id="ibw" value="10" step="0.1" min="0.1" class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-green-500 focus:border-green-500" oninput="calculateFluid()">
+              </div>
+              <div class="flex flex-col justify-center bg-white p-3 rounded shadow-sm border border-green-100">
+                <span class="text-xs text-gray-500">น้ำหนักที่ใช้คำนวณ (AdjBW):</span>
+                <span id="displayAdjBW" class="text-lg font-bold text-green-700">- kg</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="newbornFields" class="col-span-1 md:col-span-2 hidden grid-cols-1 md:grid-cols-2 gap-4 bg-blue-50 p-4 rounded-md border border-blue-100">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">อายุ (Day of Life)</label>
+              <input type="number" id="dol" value="1" min="1" max="28" class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" oninput="calculateFluid()">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Term / Preterm</label>
+              <select id="termStatus" class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" onchange="calculateFluid()">
+                <option value="term">Term</option>
+                <option value="preterm">Preterm</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 bg-yellow-50 p-4 rounded-md border border-yellow-200">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">ประเมินภาวะขาดน้ำ (Severity)</label>
+              <select id="severity" class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-yellow-500 focus:border-yellow-500" onchange="updateDehydrationPercent()">
+                <option value="none">No Dehydration (0%)</option>
+                <option value="mild">Mild</option>
+                <option value="moderate">Moderate</option>
+                <option value="severe">Severe</option>
+                <option value="custom">Custom % (ระบุเอง)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">% Dehydration Deficit</label>
+              <div class="flex items-center">
+                <input type="number" id="dehydration" value="0" min="0" max="20" class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-yellow-500 focus:border-yellow-500" oninput="setCustomSeverity()">
+                <span class="ml-2 text-gray-500">%</span>
+              </div>
+            </div>
+            
+            <details class="col-span-1 md:col-span-2 mt-2">
+              <summary class="text-sm text-blue-600 font-medium cursor-pointer hover:underline">
+                ดูเกณฑ์ประเมิน Dehydration
+              </summary>
+              <div class="mt-3 overflow-x-auto text-xs bg-white rounded border border-gray-200 shadow-sm">
+                <table class="min-w-full divide-y divide-gray-200">
+                  <thead class="bg-gray-100">
+                    <tr>
+                      <th class="px-2 py-2 text-left text-gray-500">Sign</th>
+                      <th class="px-2 py-2 text-left text-green-600">Mild</th>
+                      <th class="px-2 py-2 text-left text-yellow-600">Moderate</th>
+                      <th class="px-2 py-2 text-left text-red-600">Severe</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-200">
+                    <tr><td class="px-2 py-1 font-medium">Mental</td><td class="px-2 py-1">Alert</td><td class="px-2 py-1">Irritable</td><td class="px-2 py-1">Lethargic</td></tr>
+                    <tr><td class="px-2 py-1 font-medium">Pulse</td><td class="px-2 py-1">Normal</td><td class="px-2 py-1">Rapid</td><td class="px-2 py-1">Rapid & Weak</td></tr>
+                    <tr><td class="px-2 py-1 font-medium">BP</td><td class="px-2 py-1">Normal</td><td class="px-2 py-1">Normal/Low</td><td class="px-2 py-1">Low</td></tr>
+                    <tr><td class="px-2 py-1 font-medium">Cap.Refill</td><td class="px-2 py-1">< 2s</td><td class="px-2 py-1">2-3s</td><td class="px-2 py-1">> 3s</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <hr class="border-gray-200">
+
+        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <h2 class="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">ผลการคำนวณ</h2>
+          <div class="mb-4">
+            <span class="block text-sm text-gray-500">ชนิดของสารน้ำ (IV Fluid Type)</span>
+            <span id="resFluidType" class="text-2xl font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded inline-block mt-1">-</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+            <div class="bg-white p-3 rounded shadow-sm border border-gray-100">
+              <span class="block text-xs text-gray-500">Maintenance</span>
+              <span id="resMaintVol" class="block text-lg font-bold text-gray-800 mt-1">0 cc/day</span>
+              <span id="resMaintRate" class="block text-sm text-blue-600 font-medium">0 cc/hr</span>
+            </div>
+            <div class="bg-white p-3 rounded shadow-sm border border-gray-100">
+              <span class="block text-xs text-gray-500">Deficit</span>
+              <span id="resDefVol" class="block text-lg font-bold text-gray-800 mt-1">0 cc</span>
+              <span id="resDefRate" class="block text-sm text-red-500 font-medium">0 cc/hr</span>
+            </div>
+            <div class="bg-white p-3 rounded shadow-sm border border-blue-200 bg-blue-50">
+              <span class="block text-xs text-blue-700 font-bold">Total (24 hr)</span>
+              <span id="resTotalVol" class="block text-xl font-bold text-gray-900 mt-1">0 cc</span>
+              <span id="resTotalRate" class="block text-md text-blue-800 font-bold">0 cc/hr</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function toggleNewbornFields() {
+      const ageGroup = document.getElementById('ageGroup').value;
+      const newbornFields = document.getElementById('newbornFields');
+      if (ageGroup === 'newborn') newbornFields.style.display = 'grid';
+      else newbornFields.style.display = 'none';
+    }
+
+    function toggleObeseFields() {
+      const isObese = document.getElementById('isObese').checked;
+      const obeseFields = document.getElementById('obeseFields');
+      if (isObese) {
+        obeseFields.classList.remove('hidden');
+        obeseFields.classList.add('grid');
+      } else {
+        obeseFields.classList.add('hidden');
+        obeseFields.classList.remove('grid');
+      }
+    }
+
+    function autoCalculateIBW() {
+      const years = parseInt(document.getElementById('ageYears').value) || 0;
+      const months = parseInt(document.getElementById('ageMonths').value) || 0;
+      let estimatedIBW = 0;
+
+      if (years === 0 && months > 0) estimatedIBW = (0.5 * months) + 4;
+      else if (years >= 1 && years <= 5) estimatedIBW = (2 * years) + 8;
+      else if (years > 5 && years <= 12) estimatedIBW = (3 * years) + 7;
+      else if (years > 12) estimatedIBW = (years * 3); 
+
+      if (estimatedIBW > 0) {
+        document.getElementById('ibw').value = estimatedIBW.toFixed(1);
+        calculateFluid();
+      }
+    }
+
+    function updateDehydrationPercent() {
+      const ageGroup = document.getElementById('ageGroup').value;
+      const severity = document.getElementById('severity').value;
+      const percentInput = document.getElementById('dehydration');
+
+      if (severity === 'none') percentInput.value = 0;
+      else if (severity === 'mild') percentInput.value = (ageGroup === 'child') ? 3 : 5;
+      else if (severity === 'moderate') percentInput.value = (ageGroup === 'child') ? 5 : 10;
+      else if (severity === 'severe') percentInput.value = (ageGroup === 'child') ? 10 : 15;
+      calculateFluid();
+    }
+
+    function setCustomSeverity() {
+      document.getElementById('severity').value = 'custom';
+      calculateFluid();
+    }
+
+    function calculateFluid() {
+      const ageGroup = document.getElementById('ageGroup').value;
+      const actualWeight = parseFloat(document.getElementById('weight').value) || 0;
+      const dehydration = parseFloat(document.getElementById('dehydration').value) || 0;
+      const dol = parseInt(document.getElementById('dol').value) || 1;
+      const termStatus = document.getElementById('termStatus').value;
+      
+      const isObese = document.getElementById('isObese').checked;
+      const ibw = parseFloat(document.getElementById('ibw').value) || 0;
+      let workingWeight = actualWeight; 
+
+      if (isObese) {
+        if (ibw > 0 && actualWeight > ibw) {
+          workingWeight = ibw + 0.4 * (actualWeight - ibw);
+          document.getElementById('displayAdjBW').innerText = workingWeight.toFixed(2) + ' kg';
+        } else {
+          document.getElementById('displayAdjBW').innerText = '- kg';
+          workingWeight = actualWeight; 
+        }
+      }
+
+      let fluidType = '-';
+      let maintVol = 0;
+
+      if (ageGroup === 'newborn') {
+        fluidType = (dol <= 2) ? '10% DW' : '10% DN/5';
+        let dailyPerKg = 0;
+        if (termStatus === 'term') {
+          if (dol <= 2) dailyPerKg = 65;
+          else if (dol === 3) dailyPerKg = 80;
+          else if (dol === 4) dailyPerKg = 100;
+          else if (dol === 5) dailyPerKg = 120;
+          else dailyPerKg = 140; 
+        } else {
+          if (dol === 1) dailyPerKg = 60;
+          else if (dol <= 3) dailyPerKg = 80;
+          else if (dol === 4) dailyPerKg = 100;
+          else if (dol === 5) dailyPerKg = 120;
+          else dailyPerKg = 140; 
+        }
+        maintVol = dailyPerKg * workingWeight;
+      } else {
+        fluidType = (ageGroup === 'infant') ? '5% DN/2' : '5% DNSS';
+        if (workingWeight <= 10) maintVol = workingWeight * 100;
+        else if (workingWeight <= 20) maintVol = 1000 + ((workingWeight - 10) * 50);
+        else maintVol = 1500 + ((workingWeight - 20) * 20);
+      }
+
+      let deficitVol = dehydration * workingWeight * 10;
+      let totalVol = maintVol + deficitVol;
+
+      document.getElementById('resFluidType').innerText = fluidType;
+      document.getElementById('resMaintVol').innerText = maintVol.toFixed(0) + ' cc/day';
+      document.getElementById('resMaintRate').innerText = (maintVol / 24).toFixed(1) + ' cc/hr';
+      document.getElementById('resDefVol').innerText = deficitVol.toFixed(0) + ' cc';
+      document.getElementById('resDefRate').innerText = (deficitVol / 24).toFixed(1) + ' cc/hr';
+      document.getElementById('resTotalVol').innerText = totalVol.toFixed(0) + ' cc';
+      document.getElementById('resTotalRate').innerText = (totalVol / 24).toFixed(1) + ' cc/hr';
+    }
+
+    window.onload = function() {
+      toggleNewbornFields();
+      toggleObeseFields();
+      updateDehydrationPercent(); 
+    };
+
+    // -------------------------------------------------
+    // ระบบลงทะเบียน Service Worker สำหรับการทำ Offline
+    // -------------------------------------------------
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(registration => console.log('ServiceWorker registered'))
+          .catch(err => console.log('ServiceWorker registration failed: ', err));
+      });
+    }
+  </script>
+</body>
+</html>
